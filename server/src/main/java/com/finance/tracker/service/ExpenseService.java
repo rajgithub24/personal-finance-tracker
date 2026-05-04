@@ -19,13 +19,16 @@ public class ExpenseService {
         return repository.save(expense);
     }
 
-    public List<Expense> getAllExpenses() {
-        return repository.findAll();
+    public List<Expense> getExpensesByCategory(String category) {
+        return repository.findByCategory(category);
+    }
+
+    public List<Expense> getExpensesByDate(String date) {
+        return repository.findByDate(date);
     }
 
     public Expense updateExpense(String id, Expense expense) {
         Expense existing = repository.findById(id)
-                // .orElseThrow(() -> new RuntimeException("Expense not found"));
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
 
         existing.setTitle(expense.getTitle());
@@ -36,9 +39,6 @@ public class ExpenseService {
         return repository.save(existing);
     }
 
-    // public void deleteExpense(String id) {
-    // repository.deleteById(id);
-    // }
     public void deleteExpense(String id) {
         if (!repository.existsById(id)) {
             throw new ResourceNotFoundException("Expense not found with id: " + id);
@@ -49,5 +49,9 @@ public class ExpenseService {
     public Expense getExpenseById(String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
+    }
+
+    public List<Expense> getAllExpenses() {
+        throw new UnsupportedOperationException("Unimplemented method 'getAllExpenses'");
     }
 }
