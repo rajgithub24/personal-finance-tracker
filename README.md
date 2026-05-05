@@ -7,6 +7,13 @@ The project is split into two deployable services:
 - `client`: React + Vite frontend deployed on Vercel
 - `server`: Spring Boot backend deployed on Render using Docker
 
+
+## Live link
+
+
+```bash
+https://personal-finance-tracker-blue-chi.vercel.app/
+```
 ## Tech Stack
 
 ### Frontend
