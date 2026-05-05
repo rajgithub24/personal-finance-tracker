@@ -1,0 +1,9 @@
+target/
+node_modules/
+.mvn/
+.env
+.git/
+.gitignore
+HELP.md
+package.json
+package-lock.json
