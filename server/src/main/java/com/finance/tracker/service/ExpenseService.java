@@ -52,6 +52,6 @@ public class ExpenseService {
     }
 
     public List<Expense> getAllExpenses() {
-        throw new UnsupportedOperationException("Unimplemented method 'getAllExpenses'");
+        return repository.findAll();
     }
 }
