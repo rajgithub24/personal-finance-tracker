@@ -2,6 +2,13 @@ import { useEffect, useState } from "react";
 import { getExpenses, addExpense, deleteExpense, updateExpense, getExpensesByDate, getExpensesByCategory, getFilteredExpenses } from "./services/expenseService";
 import ExpenseChart from "./components/ExpenseChart";
 
+const ButtonLabel = ({ loading, children }) => (
+  <span className="btn-content">
+    {loading && <span className="btn-spinner" aria-hidden="true" />}
+    <span>{children}</span>
+  </span>
+);
+
 function App() {
   const [expenses, setExpenses] = useState([]);
   const [editId, setEditId] = useState(null);
@@ -10,6 +17,10 @@ function App() {
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
   const [allExpenses, setAllExpenses] = useState([]);
+  const [isFetching, setIsFetching] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [filterAction, setFilterAction] = useState(null);
   const [formData, setFormData] = useState({
     title: "",
     amount: "",
@@ -22,13 +33,18 @@ function App() {
   }, []);
 
   const fetchExpenses = async () => {
+    setIsFetching(true);
     try {
       const response = await getExpenses();
       const list = response.data || [];
       setAllExpenses(list);
       setExpenses(list);
+      return list;
     } catch (error) {
       console.error("Error fetching expenses:", error);
+      return [];
+    } finally {
+      setIsFetching(false);
     }
   };
 
@@ -41,27 +57,33 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setIsSaving(true);
     try {
       if (editId) {
         await updateExpense(editId, formData);
-        setEditId(null);
       } else {
         await addExpense(formData);
       }
 
-      fetchExpenses();
+      await fetchExpenses();
+      setEditId(null);
       setFormData({ title: "", amount: "", category: "", date: "" });
     } catch (error) {
       console.error("Error saving expense:", error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
+    setDeletingId(id);
     try {
       await deleteExpense(id);
-      fetchExpenses();
+      await fetchExpenses();
     } catch (error) {
       console.error("Error deleting expense:", error);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -76,6 +98,7 @@ function App() {
   };
 
   const handleFilterByDate = async () => {
+    setFilterAction("date");
     try {
       if (filterFrom && filterTo) {
         const from = new Date(filterFrom);
@@ -94,27 +117,32 @@ function App() {
         return;
       }
 
-      fetchExpenses();
+      await fetchExpenses();
     } catch (error) {
       console.error("Error filtering:", error);
+    } finally {
+      setFilterAction(null);
     }
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
+    setFilterAction("reset");
     setFilterDate("");
     setFilterCategory("");
     setFilterFrom("");
     setFilterTo("");
-    fetchExpenses();
+    await fetchExpenses();
+    setFilterAction(null);
   };
 
   const handleFilterByCategory = async () => {
+    setFilterAction("category");
     try {
       if (!filterCategory) {
-        fetchExpenses();
+        await fetchExpenses();
         return;
       }
-s
+
       const filtered = allExpenses.filter((e) => (e.category || "").toLowerCase() === filterCategory.toLowerCase());
       if (filtered.length) {
         setExpenses(filtered);
@@ -125,10 +153,13 @@ s
       setExpenses(res.data || []);
     } catch (error) {
       console.error("Error filtering by category:", error);
+    } finally {
+      setFilterAction(null);
     }
   };
 
   const handleApplyFilters = async () => {
+    setFilterAction("apply");
     try {
       let filtered = allExpenses;
       if (filterFrom) {
@@ -146,6 +177,8 @@ s
       setExpenses(filtered);
     } catch (error) {
       console.error("Error applying filters:", error);
+    } finally {
+      setFilterAction(null);
     }
   };
 
@@ -185,8 +218,10 @@ s
               </div>
 
               <div className="actions">
-                <button type="submit" className="btn primary">{editId ? "Update" : "Add"}</button>
-                <button type="button" className="btn ghost" onClick={() => { setFormData({ title: "", amount: "", category: "", date: "" }); setEditId(null); }}>Clear</button>
+                <button type="submit" className="btn primary" disabled={isSaving}>
+                  <ButtonLabel loading={isSaving}>{isSaving ? (editId ? "Updating" : "Adding") : (editId ? "Update" : "Add")}</ButtonLabel>
+                </button>
+                <button type="button" className="btn ghost" disabled={isSaving} onClick={() => { setFormData({ title: "", amount: "", category: "", date: "" }); setEditId(null); }}>Clear</button>
               </div>
             </form>
           </div>
@@ -206,8 +241,12 @@ s
                 </label>
 
                 <div className="filter-actions">
-                  <button className="btn outline" onClick={handleFilterByDate}>Apply Date</button>
-                  <button className="btn outline" onClick={() => { setFilterFrom(""); setFilterTo(""); fetchExpenses(); }}>Clear</button>
+                  <button className="btn outline" disabled={filterAction === "date"} onClick={handleFilterByDate}>
+                    <ButtonLabel loading={filterAction === "date"}>Apply Date</ButtonLabel>
+                  </button>
+                  <button className="btn outline" disabled={filterAction === "reset"} onClick={handleReset}>
+                    <ButtonLabel loading={filterAction === "reset"}>Clear</ButtonLabel>
+                  </button>
                 </div>
               </div>
 
@@ -223,8 +262,12 @@ s
                 </label>
 
                 <div className="filter-actions">
-                  <button className="btn outline" onClick={handleFilterByCategory}>By Category</button>
-                  <button className="btn primary" onClick={handleApplyFilters}>Apply</button>
+                  <button className="btn outline" disabled={filterAction === "category"} onClick={handleFilterByCategory}>
+                    <ButtonLabel loading={filterAction === "category"}>By Category</ButtonLabel>
+                  </button>
+                  <button className="btn primary" disabled={filterAction === "apply"} onClick={handleApplyFilters}>
+                    <ButtonLabel loading={filterAction === "apply"}>Apply</ButtonLabel>
+                  </button>
                 </div>
               </div>
             </div>
@@ -233,7 +276,8 @@ s
           <div className="card list-card fade-up">
             <h3>Recent Expenses</h3>
             <div className="expense-list">
-              {expenses.length === 0 && <div className="empty">No expenses yet</div>}
+              {isFetching && expenses.length === 0 && <div className="empty">Loading expenses...</div>}
+              {!isFetching && expenses.length === 0 && <div className="empty">No expenses yet</div>}
               {expenses.map((exp) => (
                 <div key={exp.id} className="expense-item">
                   <div className="meta">
@@ -244,8 +288,10 @@ s
                     <div className="amount">₹{exp.amount}</div>
                     <div className="date">{exp.date}</div>
                     <div className="controls">
-                      <button className="btn small ghost" onClick={() => handleEdit(exp)}>Edit</button>
-                      <button className="btn small danger" onClick={() => handleDelete(exp.id)}>Delete</button>
+                      <button className="btn small ghost" disabled={deletingId === exp.id} onClick={() => handleEdit(exp)}>Edit</button>
+                      <button className="btn small danger" disabled={deletingId === exp.id} onClick={() => handleDelete(exp.id)}>
+                        <ButtonLabel loading={deletingId === exp.id}>Delete</ButtonLabel>
+                      </button>
                     </div>
                   </div>
                 </div>

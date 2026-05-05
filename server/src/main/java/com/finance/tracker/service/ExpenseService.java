@@ -3,6 +3,7 @@ package com.finance.tracker.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import com.finance.tracker.exception.ResourceNotFoundException;
@@ -15,7 +16,7 @@ public class ExpenseService {
     @Autowired
     private ExpenseRepository repository;
 
-    public Expense addExpense(Expense expense) {
+    public Expense addExpense(@NonNull Expense expense) {
         return repository.save(expense);
     }
 
@@ -27,7 +28,7 @@ public class ExpenseService {
         return repository.findByDate(date);
     }
 
-    public Expense updateExpense(String id, Expense expense) {
+    public Expense updateExpense(@NonNull String id, Expense expense) {
         Expense existing = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
 
@@ -39,14 +40,14 @@ public class ExpenseService {
         return repository.save(existing);
     }
 
-    public void deleteExpense(String id) {
+    public void deleteExpense(@NonNull String id) {
         if (!repository.existsById(id)) {
             throw new ResourceNotFoundException("Expense not found with id: " + id);
         }
         repository.deleteById(id);
     }
 
-    public Expense getExpenseById(String id) {
+    public Expense getExpenseById(@NonNull String id) {
         return repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Expense not found with id: " + id));
     }
